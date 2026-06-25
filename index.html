@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>團隊功課紀錄系統 - 雲端多用戶版</title>
-    <!-- 引入 Supabase 官方雲端 SDK -->
-    <script src="https://jsdelivr.net"></script>
+    <title>團隊功課紀錄系統 - 多Admin雲端同步版</title>
+    <!-- 使用 cdnjs 載入 Supabase SDK，徹底防止連線逾時 -->
+    <script src="https://cloudflare.com"></script>
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; }
         
-        /* 登入介面 */
-        .login-container { max-width: 400px; margin: 50px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-        .login-input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-        .btn-login { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        /* 登入與註冊介面 */
+        .login-container { max-width: 400px; margin: 30px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; position: relative; }
+        .login-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        .btn-login { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .toggle-reg-btn { position: absolute; right: 12px; top: 12px; background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
         
         /* 主版面 */
         .header { background: #2c3e50; color: white; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-radius: 8px; margin-bottom: 12px; position: relative; }
@@ -47,11 +48,23 @@
 
 <!-- 1. 登入介面區 -->
 <div id="loginArea" class="login-container">
+    <button class="toggle-reg-btn" onclick="showRegisterUI()">➕ 註冊新員工</button>
     <h2>🔑 團隊系統登入</h2>
-    <input type="text" id="loginID" class="login-input" placeholder="請輸入您的工號 (如: 16)">
-    <input type="text" id="loginName" class="login-input" placeholder="請輸入您的姓名">
-    <p style="font-size:0.85rem; color:#888;">* 管理員登入請輸入 Admin 專用帳密</p>
+    <input type="text" id="loginID" class="login-input" placeholder="請輸入工號 / 管理員帳號">
+    <input type="password" id="loginPwd" class="login-input" placeholder="請輸入密碼">
     <button class="btn-login" onclick="handleLogin()">登入系統</button>
+</div>
+
+<!-- 1.5 註冊新員工介面區 (預設隱藏) -->
+<div id="registerArea" class="login-container" style="display: none;">
+    <h2>➕ 生產/註冊新用戶</h2>
+    <input type="text" id="regID" class="login-input" placeholder="設定新工號 (如: 500)">
+    <input type="text" id="regName" class="login-input" placeholder="輸入新員工姓名">
+    <input type="password" id="regPwd" class="login-input" placeholder="設定新員工登入密碼">
+    <hr style="border: 0.5px solid #eee; margin: 15px 0;">
+    <input type="password" id="adminVerifyPwd" class="login-input" placeholder="🛡️ 請輸入管理者 Admin 驗證密碼">
+    <button class="btn-login" style="background:#27ae60;" onclick="handleCreateUser()">確認生產帳號</button>
+    <button class="btn-login" style="background:#95a5a6; margin-top:5px;" onclick="showLoginUI()">返回登入</button>
 </div>
 
 <!-- 2. 主要工作區 (預設隱藏) -->
@@ -69,31 +82,33 @@
     </div>
 
     <div class="main-layout">
-        <!-- 一般用戶輸入區 -->
         <div class="input-side" id="inputSideUI">
             <div id="colL"></div>
             <div id="colR"></div>
         </div>
         
-        <!-- 歷史紀錄與控制區 -->
         <div class="record-side">
             <div style="padding:10px; background:#eee; font-weight:bold; font-size:0.95rem;" id="recordTitle">📋 我的歷史紀錄</div>
             <div class="record-list" id="historyBox"></div>
-            <div class="footer" id="footerButtons">
-                <!-- 按鈕會根據權限動態產生 -->
-            </div>
+            <div class="footer" id="footerButtons"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // ⚠️ 稍後建立完 Supabase 後，將這裡的網址與 Key 替換掉
+    // 🌐 雲端連線設定
     const SUPABASE_URL = "https://supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_n1yE6KcuaA7CC5agZc1rPA_FfmzDYGq";
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_ANON_KEY = "您的SUPABASE公開KEY"; // ⚠️ 請記得在這裡貼上您的 Publishable key
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // 👑 雙管理員帳號與密碼對照表
+    const ADMIN_ACCOUNTS = {
+        "lau": "okok7890",
+        "cherus": "okok7890"
+    };
 
-    // 系統變數
-    let currentUser = null; // 儲存目前登入的 user 物件 { id, name, role }
+    let loginSessionUser = null; 
 
     const leftJobs = [
         {id:1, name:"取貨", t:4, q:0, b:"bg-dark"}, {id:2, name:"出貨", t:4, q:0, b:"bg-light"},
@@ -109,25 +124,76 @@
     window.onload = () => {
         const saved = localStorage.getItem('team_user_session');
         if(saved) {
-            currentUser = JSON.parse(saved);
+            loginSessionUser = JSON.parse(saved);
             initApp();
         }
     };
 
-    function handleLogin() {
-        const id = document.getElementById('loginID').value.trim();
-        const name = document.getElementById('loginName').value.trim();
-        if(!id || !name) return alert("請填寫完整的工號與姓名！");
+    function showRegisterUI() {
+        document.getElementById('loginArea').style.display = "none";
+        document.getElementById('registerArea').style.display = "block";
+    }
+    function showLoginUI() {
+        document.getElementById('registerArea').style.display = "none";
+        document.getElementById('loginArea').style.display = "block";
+    }
 
-        // 簡單區分 Admin 權限 (您可以自行更改成您要的密碼)
-        if(id.toLowerCase() === "admin" && name === "8888") {
-            currentUser = { id: "ADMIN", name: "管理者", role: "admin" };
-        } else {
-            currentUser = { id: id, name: name, role: "user" };
+    // 🔒 登入驗證
+    async function handleLogin() {
+        const id = document.getElementById('loginID').value.trim();
+        const pwd = document.getElementById('loginPwd').value.trim();
+        if(!id || !pwd) return alert("請輸入帳號與密碼！");
+
+        // 1. 優先比對是否為指定的兩個 Admin 帳號
+        const lowID = id.toLowerCase();
+        if(ADMIN_ACCOUNTS[lowID] && ADMIN_ACCOUNTS[lowID] === pwd) {
+            loginSessionUser = { id: id.toUpperCase(), name: lowID === "lau" ? "LAU主管" : "Cherus主管", role: "admin" };
+            localStorage.setItem('team_user_session', JSON.stringify(loginSessionUser));
+            initApp();
+            return;
         }
 
-        localStorage.setItem('team_user_session', JSON.stringify(currentUser));
-        initApp();
+        // 2. 一般員工去雲端 staff_users 驗證
+        const { data, error } = await supabaseClient
+            .from('staff_users')
+            .select('*')
+            .eq('staff_id', id)
+            .eq('staff_pwd', pwd)
+            .single();
+
+        if (error || !data) {
+            alert("❌ 登入失敗：工號或密碼不正確！\n(請聯繫 LAU 或 Cherus 為您註冊新帳號)");
+        } else {
+            loginSessionUser = { id: data.staff_id, name: data.staff_name, role: "user" };
+            localStorage.setItem('team_user_session', JSON.stringify(loginSessionUser));
+            initApp();
+        }
+    }
+
+    // 🛠️ 生產新用戶 (需輸入任一管理員密碼驗證)
+    async function handleCreateUser() {
+        const regID = document.getElementById('regID').value.trim();
+        const regName = document.getElementById('regName').value.trim();
+        const regPwd = document.getElementById('regPwd').value.trim();
+        const verify = document.getElementById('adminVerifyPwd').value.trim();
+
+        if(!regID || !regName || !regPwd) return alert("請填寫完整的新員工帳號欄位！");
+        if(verify !== "okok7890") return alert("❌ 驗證失敗：管理員通行密碼不正確，無法生產用戶！");
+
+                const { error } = await supabaseClient
+            .from('staff_users')
+            .insert([{ staff_id: regID, staff_name: regName, staff_pwd: regPwd }]);
+
+        if (error) {
+            alert("❌ 註冊失敗：工號可能已經存在！\n原因: " + error.message);
+        } else {
+            alert(`🎉 成功生產用戶！\n員工 [${regID}] ${regName} 已經可以立刻登入。`);
+            showLoginUI();
+            document.getElementById('regID').value = "";
+            document.getElementById('regName').value = "";
+            document.getElementById('regPwd').value = "";
+            document.getElementById('adminVerifyPwd').value = "";
+        }
     }
 
     function handleLogout() {
@@ -137,16 +203,16 @@
 
     function initApp() {
         document.getElementById('loginArea').style.display = "none";
+        document.getElementById('registerArea').style.display = "none";
         document.getElementById('mainArea').style.display = "block";
         
-        document.getElementById('idLabel').innerText = currentUser.id;
-        document.getElementById('nameLabel').innerText = currentUser.name;
+        document.getElementById('idLabel').innerText = loginSessionUser.id;
+        document.getElementById('nameLabel').innerText = loginSessionUser.name;
         document.getElementById('workDate').valueAsDate = new Date();
 
-        if(currentUser.role === "admin") {
-            // 管理員介面
+        if(loginSessionUser.role === "admin") {
             document.getElementById('roleLabel').innerText = "(管理員)";
-            document.getElementById('inputSideUI').style.display = "none"; // 隱藏輸入卡片
+            document.getElementById('inputSideUI').style.display = "none"; 
             document.getElementById('recordTitle').innerText = "📊 全體員工雲端紀錄明細";
             document.getElementById('footerButtons').innerHTML = `
                 <button class="btn-act" style="background:#27ae60" onclick="exportAllAdmin()">📤 匯出全體大集合 JSON 文件</button>
@@ -154,7 +220,6 @@
             `;
             fetchAllRecordsAdmin();
         } else {
-            // 一般用戶介面
             document.getElementById('roleLabel').innerText = "";
             document.getElementById('colL').innerHTML = "";
             document.getElementById('colR').innerHTML = "";
@@ -185,7 +250,7 @@
     }
 
     function calc() {
-        if(currentUser.role === "admin") return;
+        if(loginSessionUser.role === "admin") return;
         let total = 0;
         [...leftJobs, ...rightJobs].forEach(j => {
             const ss = document.querySelectorAll(`.s-${j.id}`), es = document.querySelectorAll(`.e-${j.id}`);
@@ -196,14 +261,13 @@
         document.getElementById('displayTotal').innerText = Math.max(0, total).toFixed(2);
     }
 
-    // 🌐 雲端多用戶版：一般員工儲存數據至雲端
     async function saveDayCloud() {
         const date = document.getElementById('workDate').value;
         let dayData = [];
         let totalMin = 0;
 
         [...leftJobs, ...rightJobs].forEach(j => {
-            const qty = j.q ? document.querySelector(`.q-${j.id}`).value : null;
+            const qty = j.q ? document.getElementById(`q-${j.id}`).value : null;
             const ss = document.querySelectorAll(`.s-${j.id}`), es = document.querySelectorAll(`.e-${j.id}`);
             let times = [];
             ss.forEach((s, i) => { 
@@ -216,34 +280,26 @@
         });
         
         if(dayData.length === 0) return alert("請先輸入數據再儲存！");
-        
         const hoursCalculated = (totalMin / 60).toFixed(2);
 
-        // 寫入 Supabase 雲端資料庫
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('work_records')
             .insert([
-                { staff_id: currentUser.id, staff_name: currentUser.name, work_date: date, hours: hoursCalculated, details: dayData }
+                { staff_id: loginSessionUser.id, staff_name: loginSessionUser.name, work_date: date, hours: hoursCalculated, details: dayData }
             ]);
 
-        if (error) {
-            alert("❌ 雲端儲存失敗：" + error.message);
-        } else {
-            alert("💾 數據已成功同步到雲端後台！");
-            location.reload();
-        }
+        if (error) alert("❌ 雲端儲存失敗：" + error.message);
+        else { alert("💾 數據已成功同步到雲端後台！"); location.reload(); }
     }
 
-    // 🌐 雲端多用戶版：一般員工讀取「自己」的雲端歷史紀錄
     async function fetchMyRecords() {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('work_records')
             .select('*')
-            .eq('staff_id', currentUser.id)
+            .eq('staff_id', loginSessionUser.id)
             .order('work_date', { ascending: false });
 
         if (error) return console.error(error);
-        
         const box = document.getElementById('historyBox');
         box.innerHTML = "";
         data.forEach(row => {
@@ -255,23 +311,20 @@
         });
     }
 
-    // 🌐 雲端多用戶版：一般員工刪除自己單筆紀錄
     async function deleteRecordCloud(rowId) {
         if(!confirm("確定要從雲端刪除這筆紀錄嗎？")) return;
-        const { error } = await supabase.from('work_records').delete().eq('id', rowId);
+        const { error } = await supabaseClient.from('work_records').delete().eq('id', rowId);
         if(error) alert("刪除失敗：" + error.message);
         else fetchMyRecords();
     }
 
-    // 👑 Admin 管理員權限：從雲端獲取「所有人」的紀錄明細
     async function fetchAllRecordsAdmin() {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('work_records')
             .select('*')
             .order('work_date', { ascending: false });
 
         if (error) return alert("載入雲端數據失敗：" + error.message);
-
         const box = document.getElementById('historyBox');
         box.innerHTML = "";
         data.forEach(row => {
@@ -281,28 +334,19 @@
                 <div style="font-size:0.8rem; color:#555; margin-top:4px;">項目: ${row.details.map(d => d.job + (d.qty?`(${d.qty}件)`:'')).join(', ')}</div>
             </div>`;
         });
-        // 暫存全域變數，供打包下載使用
         window.adminLoadedData = data;
     }
 
-    // 👑 Admin 管理員權限：強行刪除某一筆員工紀錄
     async function deleteRecordAdmin(rowId) {
         if(!confirm("身為 Admin，您確定要強行刪除此員工的這筆紀錄嗎？")) return;
-        const { error } = await supabase.from('work_records').delete().eq('id', rowId);
+        const { error } = await supabaseClient.from('work_records').delete().eq('id', rowId);
         if(error) alert(error.message);
         else fetchAllRecordsAdmin();
     }
 
-    // 👑 Admin 管理員權限：一鍵導出集合全體員工的大 JSON 檔案
     function exportAllAdmin() {
         if(!window.adminLoadedData || window.adminLoadedData.length === 0) return alert("目前沒有任何雲端數據可導出！");
-        
-        const payload = JSON.stringify({
-            exportTime: new Date().toLocaleString(),
-            totalRecordsCount: window.adminLoadedData.length,
-            allStaffRecords: window.adminLoadedData
-        }, null, 2);
-
+        const payload = JSON.stringify({ exportTime: new Date().toLocaleString(), totalRecordsCount: window.adminLoadedData.length, allStaffRecords: window.adminLoadedData }, null, 2);
         const blob = new Blob([payload], { type: "application/json" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -310,11 +354,10 @@
         a.click();
     }
 
-    // 👑 Admin 管理員權限：清空雲端資料庫
     async function clearAllAdmin() {
         if(confirm("❗❗ 警告 ❗❗\n您正在執行清空全團隊資料庫操作！這會刪除全體員工所有的雲端數據！確定繼續？")) {
             if(confirm("請再次確認：此操作無法復原！")) {
-                const { error } = await supabase.from('work_records').delete().neq('id', 0);
+                const { error } = await supabaseClient.from('work_records').delete().neq('id', 0);
                 if(error) alert(error.message);
                 else location.reload();
             }
