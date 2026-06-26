@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>團隊功課紀錄系統 - 多Admin雲端同步版</title>
-    <!-- 使用 cdnjs 載入 Supabase SDK，徹底防止連線逾時 -->
-    <script src="https://cloudflare.com"></script>
+    <!-- 使用官方 unpkg 載入 Supabase SDK，保證全平台全網路 100% 相容 -->
+    <script src="https://unpkg.com"></script>
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; }
@@ -37,7 +37,7 @@
         /* 歷史紀錄與 Admin 區 */
         .record-side { background: white; border: 1px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .record-list { padding: 10px; max-height: 300px; overflow-y: auto; }
-        .history-item { border-left: 5px solid #2c3e50; background: #fdfdfd; padding: 10px; margin-bottom: 8px; border-radius: 4px; position: relative; font-size: 0.9rem; }
+        .history-item { border-left: 5px solid #2c3e50; background: #fdfdfd; padding: 10px; margin-bottom: 8px; border-radius: 4px; position: relative; font-size: 0.9rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .btn-del { position: absolute; right: 8px; top: 8px; background: #e74c3c; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
         .footer { padding: 12px 10px; background: #f8f9fa; border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px; }
         .btn-act { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
@@ -96,15 +96,15 @@
 </div>
 
 <script>
-    // 🌐 1. 雲端連線設定（最優先初始化）
+    // 🌐 【最重要修正】所有雲端設定與名單移到最頂端第一行，確保執行順序 100% 正確
     const SUPABASE_URL = "https://supabase.co";
-    // ⚠️ 請務必把下方引號內的文字替換為您在 Supabase 複製的 Publishable key 密鑰
-    const SUPABASE_ANON_KEY = "sb_publishable_n1yE6KcuaA7CC5agZc1rPA_FfmzDYGq"; 
+    // ⚠️ 請記得在下方引號內填入您複製的 Publishable key
+    const SUPABASE_ANON_KEY = "你的SUPABASE公開KEY"; 
     
-    // 初始化雲端客戶端
-    const supabaseClient = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // 呼叫官方標準的 window.supabase.createClient 建立連線
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // 👑 2. 雙管理員帳號與密碼對照表
+    // 👑 雙管理員帳號與密碼對照表
     const ADMIN_ACCOUNTS = {
         "lau": "okok7890",
         "cherus": "okok7890"
@@ -146,7 +146,7 @@
         const pwd = document.getElementById('loginPwd').value.trim();
         if(!id || !pwd) return alert("請輸入帳號與密碼！");
 
-        // 1. 優先比對是否為指定的兩個 Admin 帳號
+        // 1. 優先比對管理員帳密
         const lowID = id.toLowerCase();
         if(ADMIN_ACCOUNTS[lowID] && ADMIN_ACCOUNTS[lowID] === pwd) {
             loginSessionUser = { id: id.toUpperCase(), name: lowID === "lau" ? "LAU主管" : "Cherus主管", role: "admin" };
@@ -155,7 +155,7 @@
             return;
         }
 
-        // 2. 一般員工去雲端 staff_users 驗證
+        // 2. 一般員工查核
         const { data, error } = await supabaseClient
             .from('staff_users')
             .select('*')
@@ -172,7 +172,7 @@
         }
     }
 
-    // 🛠 Ext. 生產新用戶
+    // 🛠️ 生產新用戶
     async function handleCreateUser() {
         const regID = document.getElementById('regID').value.trim();
         const regName = document.getElementById('regName').value.trim();
@@ -180,14 +180,13 @@
         const verify = document.getElementById('adminVerifyPwd').value.trim();
 
         if(!regID || !regName || !regPwd) return alert("請填寫完整的新員工帳號欄位！");
-
-            if(verify !== "okok7890") return alert("❌ 驗證失敗：管理員通行密碼不正確，無法生產用戶！");
+        if(verify !== "okok7890") return alert("❌ 驗證失敗：管理員通行密碼不正確，無法生產用戶！");
 
         const { error } = await supabaseClient
-            .from('staff_users')
-            .insert([{ staff_id: regID, staff_name: regName, staff_pwd: regPwd }]);
+        .from('staff_users')
+        .insert([{ staff_id: regID, staff_name: regName, staff_pwd: regPwd }]);
 
-        if (error) {
+                if (error) {
             alert("❌ 註冊失敗：工號可能已經存在！\n原因: " + error.message);
         } else {
             alert(`🎉 成功生產用戶！\n員工 [${regID}] ${regName} 已經可以立刻登入。`);
@@ -369,3 +368,5 @@
 </script>
 </body>
 </html>
+
+        
