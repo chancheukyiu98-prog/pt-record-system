@@ -306,6 +306,9 @@
                 <button class="btn-act" style="background:#3498db" onclick="saveDayCloud()">💾 上傳儲存至雲端</button>
             `;
             fetchMyRecords();
+            
+            // 💡 補在這裡：卡片建好後，立即將開始時間通通設定為 09:00
+            setDefaultStartTimes();
         }
     }
 
@@ -316,15 +319,35 @@
     }
 
     function makeCard(j) {
-        let h = `<div class="job-card"><div class="job-title ${j.b}">${j.id}. ${j.name}</div>`;
-        if(j.q) h += `<div class="qty-row">數量：<input type="number" class="q-${j.id}" id="q-${j.id}"></div>`;
-        h += `<div class="table-responsive"><table class="time-table">`;
-        for(let i=0; i<j.t; i++){
-            h += `<tr><td><input type="time" class="s-${j.id}" onblur="handleTimeInput(this)"></td>
-                      <td><input type="time" class="e-${j.id}" onblur="handleTimeInput(this)"></td></tr>`;
-        }
-        return h + `</table></div></div>`;
+    let h = `<div class="job-card"><div class="job-title ${j.b}">${j.id}. ${j.name}</div>`;
+    if(j.q) h += `<div class="qty-row">數量：<input type="number" class="q-${j.id}" id="q-${j.id}"></div>`;
+    h += `<div class="table-responsive"><table class="time-table">`;
+    
+    // 建立 00:00 到 23:30 的半小時單位時間選項（您也可以改成整點，這裡先給最常用的每半小時一格）
+    let timeOptions = `<option value="">--:--</option>`;
+    for (let hr = 0; hr < 24; hr++) {
+        let hrStr = String(hr).padStart(2, '0');
+        timeOptions += `<option value="${hrStr}:00">${hrStr}:00</option>`;
+        timeOptions += `<option value="${hrStr}:30">${hrStr}:30</option>`;
     }
+
+    for(let i=0; i<j.t; i++){
+        h += `<tr>
+                <td>
+                    <select class="s-${j.id}" onchange="autoPlusOneHour(this, '${j.id}', ${i})" style="width:90%; height:36px; font-size:1rem; border:1px solid #ccc; border-radius:4px; text-align:center;">
+                        ${timeOptions}
+                    </select>
+                </td>
+                <td>
+                    <select class="e-${j.id}" onchange="calc()" style="width:90%; height:36px; font-size:1rem; border:1px solid #ccc; border-radius:4px; text-align:center;">
+                        ${timeOptions}
+                    </select>
+                </td>
+              </tr>`;
+    }
+    return h + `</table></div></div>`;
+}
+
 
     // 新增切換字型大小的功能
     // 全新 1-5 級按比例縮放函數（3 為 100% 基準，每級差 10%）
@@ -463,6 +486,34 @@
             }
         }
     }
+
+    // 功能：當用戶修改開始時間，結束時間自動連動 +1 小時
+function autoPlusOneHour(startSelect, jobId, index) {
+    if (!startSelect.value) return;
+
+    let [hours, minutes] = startSelect.value.split(':').map(Number);
+    hours = (hours + 1) % 24; // 加一小時，超過 23 自動歸零
+    
+    let nextHourStr = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+    
+    const endSelects = document.querySelectorAll(`.e-${jobId}`);
+    if (endSelects[index]) {
+        endSelects[index].value = nextHourStr;
+    }
+    calc(); // 重新計算總工時
+}
+
+// 功能：在 initApp 裡面呼叫，把所有開始時間的預設值填上 "09:00"
+function setDefaultStartTimes() {
+    [...leftJobs, ...rightJobs].forEach(j => {
+        const startSelects = document.querySelectorAll(`.s-${j.id}`);
+        startSelects.forEach(select => {
+            select.value = "09:00"; // 預設全部為上午 9:00
+        });
+    });
+    calc(); // 觸發初始計算
+}
+
 </script>
 </body>
 </html>
