@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>團隊功課紀錄系統 - 多Admin雲端同步版</title>
     <!-- 使用官方 unpkg 載入 Supabase SDK，保證全平台全網路 100% 相容 -->
-    <script src="https://unpkg.com"></script>
+    <!-- 替換成這行： -->
+    <script src="https://cloudflare.com"></script>
+
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; }
@@ -176,12 +178,7 @@
         document.getElementById('loginArea').style.display = "block";
     }
     
-    // 👑 雙管理員帳號與密碼對照表
-    const ADMIN_ACCOUNTS = {
-        "lau": "okok7890",
-        "cherus": "okok7890"
-    };
-
+  
     // 🔒 登入驗證
     async function handleLogin() {
         const id = document.getElementById('loginID').value.trim();
