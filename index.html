@@ -1,3 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>團隊功課紀錄系統 - 多Admin雲端同步版</title>
+    <!-- 使用 cdnjs 載入 Supabase SDK，徹底防止連線逾時 -->
+    <script src="https://cloudflare.com"></script>
+    <style>
+        :root { --dark-blue: #154360; --light-blue: #2980b9; }
+        body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; }
+        
+        /* 登入與註冊介面 */
+        .login-container { max-width: 400px; margin: 30px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; position: relative; }
+        .login-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        .btn-login { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .toggle-reg-btn { position: absolute; right: 12px; top: 12px; background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
+        
+        /* 主版面 */
+        .header { background: #2c3e50; color: white; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-radius: 8px; margin-bottom: 12px; position: relative; }
+        .btn-logout { position: absolute; right: 12px; top: 12px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+        .header-meta { display: flex; justify-content: space-between; align-items: center; font-size: 1.05rem; margin-top: 15px; }
+        .header-total { background: rgba(255,255,255,0.15); padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .main-layout { display: flex; flex-direction: column; gap: 15px; }
+        .input-side { display: flex; flex-direction: column; gap: 12px; }
+        
+        /* 工作卡片 */
+        .job-card { border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .job-title { padding: 10px; font-size: 1.15rem; font-weight: bold; text-align: center; color: white; }
+        .qty-row { background: #fff9db; padding: 8px; text-align: center; border-bottom: 1px solid #ccc; font-size: 0.95rem; font-weight: bold; }
+        .qty-row input[type="number"] { width: 80px; height: 28px; text-align: center; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .time-table { width: 100%; border-collapse: collapse; min-width: 260px; }
+        .time-table td { border: 1px solid #eee; padding: 6px; text-align: center; }
+        input[type="time"] { width: 90%; height: 36px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; background: #fafafa; text-align: center; }
+        
+        /* 歷史紀錄與 Admin 區 */
+        .record-side { background: white; border: 1px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .record-list { padding: 10px; max-height: 300px; overflow-y: auto; }
+        .history-item { border-left: 5px solid #2c3e50; background: #fdfdfd; padding: 10px; margin-bottom: 8px; border-radius: 4px; position: relative; font-size: 0.9rem; }
+        .btn-del { position: absolute; right: 8px; top: 8px; background: #e74c3c; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .footer { padding: 12px 10px; background: #f8f9fa; border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px; }
+        .btn-act { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
+        .bg-dark { background: var(--dark-blue); } .bg-light { background: var(--light-blue); }
+    </style>
+</head>
+<body>
+
+<!-- 1. 登入介面區 -->
+<div id="loginArea" class="login-container">
+    <button class="toggle-reg-btn" onclick="showRegisterUI()">➕ 註冊新員工</button>
+    <h2>🔑 團隊系統登入</h2>
+    <input type="text" id="loginID" class="login-input" placeholder="請輸入工號 / 管理員帳號">
+    <input type="password" id="loginPwd" class="login-input" placeholder="請輸入密碼">
+    <button class="btn-login" onclick="handleLogin()">登入系統</button>
+</div>
+
+<!-- 1.5 註冊新員工介面區 (預設隱藏) -->
+<div id="registerArea" class="login-container" style="display: none;">
+    <h2>➕ 生產/註冊新用戶</h2>
+    <input type="text" id="regID" class="login-input" placeholder="設定新工號 (如: 500)">
+    <input type="text" id="regName" class="login-input" placeholder="輸入新員工姓名">
+    <input type="password" id="regPwd" class="login-input" placeholder="設定新員工登入密碼">
+    <hr style="border: 0.5px solid #eee; margin: 15px 0;">
+    <input type="password" id="adminVerifyPwd" class="login-input" placeholder="🛡️ 請輸入管理者 Admin 驗證密碼">
+    <button class="btn-login" style="background:#27ae60;" onclick="handleCreateUser()">確認生產帳號</button>
+    <button class="btn-login" style="background:#95a5a6; margin-top:5px;" onclick="showLoginUI()">返回登入</button>
+</div>
+
+<!-- 2. 主要工作區 (預設隱藏) -->
+<div id="mainArea" style="display: none;">
+    <div class="header">
+        <button class="btn-logout" onclick="handleLogout()">登出</button>
+        <div class="header-meta">
+            <div style="font-weight:bold;">👤 當前用戶：[<span id="idLabel"></span>] <span id="nameLabel"></span> <span id="roleLabel" style="color:#f1c40f;"></span></div>
+            <div><input type="date" id="workDate" onchange="calc()" style="font-size:1rem; padding:3px; border-radius:4px;"></div>
+        </div>
+        <div class="header-total">
+            <span>⏱️ 當日總計：</span>
+            <span id="displayTotal" style="padding:2px 12px; border-radius:4px; background:#fff; color:#000;">0.00</span> hrs
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="input-side" id="inputSideUI">
+            <div id="colL"></div>
+            <div id="colR"></div>
+        </div>
+        
+        <div class="record-side">
+            <div style="padding:10px; background:#eee; font-weight:bold; font-size:0.95rem;" id="recordTitle">📋 我的歷史紀錄</div>
+            <div class="record-list" id="historyBox"></div>
+            <div class="footer" id="footerButtons"></div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cloudflare.com"></script>
 <script>
     // 🌐 1. 雲端連線設定（最優先初始化）
@@ -123,113 +220,6 @@
                 <button class="btn-act" style="background:#27ae60" onclick="exportAllAdmin()">📤 匯出全體大集合 JSON 文件</button>
                 <button class="btn-act" style="background:#95a5a6" onclick="clearAllAdmin()">🗑️ 刪除雲端所有數據 (慎用)</button>
             `;
-            fetchAllRecordsAdmin();
-        } else {
-            document.getElementById('roleLabel').innerText = "";
-            document.getElementById('colL').innerHTML = "";
-            document.getElementById('colR').innerHTML = "";
-            leftJobs.forEach(j => document.getElementById('colL').innerHTML += makeCard(j));
-            rightJobs.forEach(j => document.getElementById('colR').innerHTML += makeCard(j));
-            document.getElementById('footerButtons').innerHTML = `
-                <button class="btn-act" style="background:#3498db" onclick="saveDayCloud()">💾 上傳儲存至雲端</button>
-            `;
-            fetchMyRecords();
-        }
-    }
-
-    function handleTimeInput(el) {
-        if (el.value && !el.value.includes(':')) { }
-        else if (el.value && el.value.split(':').length < 2) el.value += ":00";
-        calc();
-    }
-
-    function makeCard(j) {
-        let h = `<div class="job-card"><div class="job-title ${j.b}">${j.id}. ${j.name}</div>`;
-        if(j.q) h += `<div class="qty-row">數量：<input type="number" class="q-${j.id}" id="q-${j.id}"></div>`;
-        h += `<div class="table-responsive"><table class="time-table">`;
-        for(let i=0; i<j.t; i++){
-            h += `<tr><td><input type="time" class="s-${j.id}" onblur="handleTimeInput(this)"></td>
-                      <td><input type="time" class="e-${j.id}" onblur="handleTimeInput(this)"></td></tr>`;
-        }
-        return h + `</table></div></div>`;
-    }
-
-    function calc() {
-        if(loginSessionUser.role === "admin") return;
-        let total = 0;
-        [...leftJobs, ...rightJobs].forEach(j => {
-            const ss = document.querySelectorAll(`.s-${j.id}`), es = document.querySelectorAll(`.e-${j.id}`);
-            ss.forEach((s, i) => {
-                if(s.value && es[i].value) total += (new Date("1970/01/01 "+es[i].value) - new Date("1970/01/01 "+s.value))/3600000;
-            });
-        });
-        document.getElementById('displayTotal').innerText = Math.max(0, total).toFixed(2);
-    }
-
-    async function saveDayCloud() {
-        const date = document.getElementById('workDate').value;
-        let dayData = [];
-        let totalMin = 0;
-
-        [...leftJobs, ...rightJobs].forEach(j => {
-            const qty = j.q ? document.getElementById(`q-${j.id}`).value : null;
-            const ss = document.querySelectorAll(`.s-${j.id}`), es = document.querySelectorAll(`.e-${j.id}`);
-            let times = [];
-            ss.forEach((s, i) => { 
-                if(s.value && es[i].value) {
-                    times.push({s: s.value, e: es[i].value});
-                    totalMin += (new Date("1970/01/01 "+es[i].value) - new Date("1970/01/01 "+s.value))/60000;
-                }
-            });
-            if(times.length > 0 || qty) dayData.push({ job: j.name, qty, times });
-        });
-        
-        if(dayData.length === 0) return alert("請先輸入數據再儲存！");
-        const hoursCalculated = (totalMin / 60).toFixed(2);
-
-        const { data, error } = await supabaseClient
-            .from('work_records')
-            .insert([
-                { staff_id: loginSessionUser.id, staff_name: loginSessionUser.name, work_date: date, hours: hoursCalculated, details: dayData }
-            ]);
-
-        if (error) alert("❌ 雲端儲存失敗：" + error.message);
-        else { alert("💾 數據已成功同步到雲端後台！"); location.reload(); }
-    }
-
-    async function fetchMyRecords() {
-        const { data, error } = await supabaseClient
-            .from('work_records')
-            .select('*')
-            .eq('staff_id', loginSessionUser.id)
-            .order('work_date', { ascending: false });
-
-        if (error) return console.error(error);
-        const box = document.getElementById('historyBox');
-        box.innerHTML = "";
-        data.forEach(row => {
-            box.innerHTML += `<div class="history-item">
-                <button class="btn-del" onclick="deleteRecordCloud(${row.id})">刪除</button>
-                <strong>${row.work_date}</strong> | <span style="color:#2980b9; font-weight:bold;">${row.hours}h</span>
-                <div style="font-size:0.8rem; color:#666; margin-top:4px;">${row.details.map(d => d.job).join(', ')}</div>
-            </div>`;
-        });
-    }
-
-    async function deleteRecordCloud(rowId) {
-        if(!confirm("確定要從雲端刪除這筆紀錄嗎？")) return;
-        const { error } = await supabaseClient.from('work_records').delete().eq('id', rowId);
-        if(error) alert("刪除失敗：" + error.message);
-        else fetchMyRecords();
-    }
-
-    async function fetchAllRecordsAdmin() {
-        const { data, error } = await supabaseClient
-            .from('work_records')
-            .select('*')
-            .order('work_date', { ascending: false });
-
-        if (error) return alert("載入雲端數據失敗：" + error.message);
         const box = document.getElementById('historyBox');
         box.innerHTML = "";
         data.forEach(row => {
