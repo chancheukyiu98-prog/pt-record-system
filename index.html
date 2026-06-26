@@ -140,7 +140,8 @@
                 </select>
     
                 <button class="btn-logout" onclick="handleLogout()">登出</button>
-                <input type="date" id="workDate" onchange="calc()" style="font-size:1rem; padding:4px; border-radius:4px; border:1px solid #ccc;">
+                <!-- 修改為： -->
+                <input type="date" id="workDate" onchange="calc(); document.getElementById('displayTotal').style.background='#fff';" style="font-size:1rem; padding:4px; border-radius:4px; border:1px solid #ccc;">
             </div>
 
 
@@ -393,23 +394,83 @@
     }
 
     async function fetchMyRecords() {
-        const { data, error } = await supabaseClient
-            .from('work_records')
-            .select('*')
-            .eq('staff_id', loginSessionUser.id)
-            .order('work_date', { ascending: false });
+    const { data, error } = await supabaseClient
+        .from('work_records')
+        .select('*')
+        .eq('staff_id', loginSessionUser.id)
+        .order('work_date', { ascending: false });
 
-        if (error) return console.error(error);
-        const box = document.getElementById('historyBox');
-        box.innerHTML = "";
-        data.forEach(row => {
-            box.innerHTML += `<div class="history-item">
-                <button class="btn-del" onclick="deleteRecordCloud(${row.id})">刪除</button>
-                <strong>${row.work_date}</strong> | <span style="color:#2980b9; font-weight:bold;">${row.hours}h</span>
-                <div style="font-size:0.8rem; color:#666; margin-top:4px;">${row.details.map(d => d.job).join(', ')}</div>
-            </div>`;
-        });
-    }
+    if (error) return console.error(error);
+    const box = document.getElementById('historyBox');
+    box.innerHTML = "";
+    
+    // 💡 儲存全域變數，方便稍後點擊時直接對照數據，不用重複查詢資料庫
+    window.myLoadedRecords = data; 
+
+    data.forEach(row => {
+        // 調整重點：整個項目加上 onclick 事件與游標手勢，並把刪除按鈕隔開
+        box.innerHTML += `<div class="history-item" style="cursor: pointer; transition: background 0.2s;" onclick="if(!event.target.classList.contains('btn-del')) loadPastRecordToUI(${row.id})" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background='#fdfdfd'">
+            <button class="btn-del" onclick="deleteRecordCloud(${row.id})">刪除</button>
+            <strong>📅 ${row.work_date}</strong> | <span style="color:#2980b9; font-weight:bold;">${row.hours}h</span>
+            <div style="font-size:0.8rem; color:#666; margin-top:4px;">${row.details.map(d => d.job).join(', ')}</div>
+        </div>`;
+    });
+}
+
+    // 全新功能：點擊歷史紀錄後，將當天數據倒填回上方的輸入框中
+function loadPastRecordToUI(rowId) {
+    if (!window.myLoadedRecords) return;
+    
+    // 1. 從快取中找到這筆紀錄
+    const record = window.myLoadedRecords.find(r => r.id === rowId);
+    if (!record) return;
+
+    // 2. 先把畫面上所有的輸入框、下拉選單通通清空
+    [...leftJobs, ...rightJobs].forEach(j => {
+        if (j.q) {
+            const qtyInput = document.getElementById(`q-${j.id}`);
+            if (qtyInput) qtyInput.value = "";
+        }
+        document.querySelectorAll(`.s-${j.id}`).forEach(s => s.value = "");
+        document.querySelectorAll(`.e-${j.id}`).forEach(e => e.value = "");
+    });
+
+    // 3. 將日期選擇器切換到該筆紀錄的日期
+    document.getElementById('workDate').value = record.work_date;
+
+    // 4. 將舊數據精準填回對應的欄位
+    record.details.forEach(d => {
+        // 根據工作名稱找到對應的 Job 物件
+        const targetJob = [...leftJobs, ...rightJobs].find(j => j.name === d.job);
+        if (!targetJob) return;
+
+        // 填回數量
+        if (targetJob.q && d.qty) {
+            const qtyInput = document.getElementById(`q-${targetJob.id}`);
+            if (qtyInput) qtyInput.value = d.qty;
+        }
+
+        // 填回每一組時間
+        if (d.times && d.times.length > 0) {
+            const sInputs = document.querySelectorAll(`.s-${targetJob.id}`);
+            const eInputs = document.querySelectorAll(`.e-${targetJob.id}`);
+            d.times.forEach((timePair, i) => {
+                if (sInputs[i]) sInputs[i].value = timePair.s || "";
+                if (eInputs[i]) eInputs[i].value = timePair.e || "";
+            });
+        }
+    });
+
+    // 5. 重新計算總時數，並跳出親切的提示
+    calc();
+    
+    // 在總時數旁邊加一個顯眼的歷史回看提示燈
+    const totalDisplay = document.getElementById('displayTotal');
+    totalDisplay.style.background = "#f1c40f"; // 變黃色背景提示
+    
+    alert(`📂 已成功調出【${record.work_date}】的歷史紀錄！\n您現在可以查看細節。如果修改了內容，再次點擊「上傳儲存」即可覆蓋或新增。`);
+}
+
 
     async function deleteRecordCloud(rowId) {
         if(!confirm("確定要從雲端刪除這筆紀錄嗎？")) return;
