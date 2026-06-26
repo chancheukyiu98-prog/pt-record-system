@@ -279,39 +279,35 @@
     }
 
     function initApp() {
-    document.getElementById('loginArea').style.display = "none";
-    document.getElementById('registerArea').style.display = "none";
-    document.getElementById('mainArea').style.display = "block";
-    
-    document.getElementById('idLabel').innerText = loginSessionUser.id;
-    document.getElementById('nameLabel').innerText = loginSessionUser.name;
-    document.getElementById('workDate').valueAsDate = new Date();
+        document.getElementById('loginArea').style.display = "none";
+        document.getElementById('registerArea').style.display = "none";
+        document.getElementById('mainArea').style.display = "block";
+        
+        document.getElementById('idLabel').innerText = loginSessionUser.id;
+        document.getElementById('nameLabel').innerText = loginSessionUser.name;
+        document.getElementById('workDate').valueAsDate = new Date();
 
-    if(loginSessionUser.role === "admin") {
-        document.getElementById('roleLabel').innerText = "(管理員)";
-        document.getElementById('inputSideUI').style.display = "none"; 
-        document.getElementById('recordTitle').innerText = "📊 全體員工雲端紀錄明細";
-        document.getElementById('footerButtons').innerHTML = `
-            <button class="btn-act" style="background:#27ae60" onclick="exportAllAdmin()">📤 匯出全體大集合 JSON 文件</button>
-            <button class="btn-act" style="background:#95a5a6" onclick="clearAllAdmin()">🗑️ 刪除雲端所有數據 (慎用)</button>
-        `;
-        fetchAllRecordsAdmin();
-    } else {
-        document.getElementById('roleLabel').innerText = "";
-        document.getElementById('colL').innerHTML = "";
-        document.getElementById('colR').innerHTML = "";
-        leftJobs.forEach(j => document.getElementById('colL').innerHTML += makeCard(j));
-        rightJobs.forEach(j => document.getElementById('colR').innerHTML += makeCard(j));
-        document.getElementById('footerButtons').innerHTML = `
-            <button class="btn-act" style="background:#3498db" onclick="saveDayCloud()">💾 上傳儲存至雲端</button>
-        `;
-        fetchMyRecords();
+        if(loginSessionUser.role === "admin") {
+            document.getElementById('roleLabel').innerText = "(管理員)";
+            document.getElementById('inputSideUI').style.display = "none"; 
+            document.getElementById('recordTitle').innerText = "📊 全體員工雲端紀錄明細";
+            document.getElementById('footerButtons').innerHTML = `
+                <button class="btn-act" style="background:#27ae60" onclick="exportAllAdmin()">📤 匯出全體大集合 JSON 文件</button>
+                <button class="btn-act" style="background:#95a5a6" onclick="clearAllAdmin()">🗑️ 刪除雲端所有數據 (慎用)</button>
+            `;
+            fetchAllRecordsAdmin();
+        } else {
+            document.getElementById('roleLabel').innerText = "";
+            document.getElementById('colL').innerHTML = "";
+            document.getElementById('colR').innerHTML = "";
+            leftJobs.forEach(j => document.getElementById('colL').innerHTML += makeCard(j));
+            rightJobs.forEach(j => document.getElementById('colR').innerHTML += makeCard(j));
+            document.getElementById('footerButtons').innerHTML = `
+                <button class="btn-act" style="background:#3498db" onclick="saveDayCloud()">💾 上傳儲存至雲端</button>
+            `;
+            fetchMyRecords();
+        }
     }
-    
-    // 💡 補在這裡：確保一初始化完，就能立即執行一次時數計算
-    calc();
-}
-
 
     function handleTimeInput(el) {
         if (el.value && !el.value.includes(':')) { }
@@ -319,21 +315,16 @@
         calc();
     }
 
-    // 請尋找並將原本的 makeCard 完整替換為以下代碼：
     function makeCard(j) {
         let h = `<div class="job-card"><div class="job-title ${j.b}">${j.id}. ${j.name}</div>`;
         if(j.q) h += `<div class="qty-row">數量：<input type="number" class="q-${j.id}" id="q-${j.id}"></div>`;
         h += `<div class="table-responsive"><table class="time-table">`;
         for(let i=0; i<j.t; i++){
-            // 💡 調整重點：開始時間加上 value="09:00"，且兩者皆綁定 data-index 和 change 事件
-            h += `<tr>
-                    <td><input type="time" class="s-${j.id}" data-index="${i}" value="09:00" onblur="handleTimeInput(this)" onchange="autoPlusOneHour(this, '${j.id}', ${i})"></td>
-                    <td><input type="time" class="e-${j.id}" data-index="${i}" onblur="handleTimeInput(this)"></td>
-                  </tr>`;
+            h += `<tr><td><input type="time" class="s-${j.id}" onblur="handleTimeInput(this)"></td>
+                      <td><input type="time" class="e-${j.id}" onblur="handleTimeInput(this)"></td></tr>`;
         }
         return h + `</table></div></div>`;
     }
-
 
     // 新增切換字型大小的功能
     // 全新 1-5 級按比例縮放函數（3 為 100% 基準，每級差 10%）
@@ -462,32 +453,6 @@
         a.download = `全體員工工時大集合資料庫_${new Date().toISOString().slice(0,10)}.json`;
         a.click();
     }
-
-    // 新增功能：當用戶更改開始時間時，結束時間自動 +1 小時
-function autoPlusOneHour(startInput, jobId, index) {
-    if (!startInput.value) return;
-
-    // 解析當前選擇的小時與分鐘 (例如 "10:30" 拆成 10 和 30)
-    let [hours, minutes] = startInput.value.split(':').map(Number);
-    
-    // 將小時加 1
-    hours = hours + 1;
-    
-    // 如果超過 23 點，自動歸零 (24:00 變 00:00)
-    if (hours >= 24) hours = 0;
-    
-    // 補零格式化成 "HH:MM" 字串
-    let nextHourStr = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
-    
-    // 尋找同一個卡片、同一個橫列的結束時間框，並填入數值
-    const endInputs = document.querySelectorAll(`.e-${jobId}`);
-    if (endInputs[index]) {
-        endInputs[index].value = nextHourStr;
-    }
-    
-    // 立即重新計算當日總總時數
-    calc();
-}
 
     async function clearAllAdmin() {
         if(confirm("❗❗ 警告 ❗❗\n您正在執行清空全團隊資料庫操作！這會刪除全體員工所有的雲端數據！確定繼續？")) {
