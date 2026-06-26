@@ -95,16 +95,15 @@
     </div>
 </div>
 
-<script src="https://cloudflare.com"></script>
 <script>
     // 🌐 1. 雲端連線設定（最優先初始化）
     const SUPABASE_URL = "https://supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_n1yE6KcuaA7CC5agZc1rPA_FfmzDYGq"; // ⚠️ 請記得在這裡貼上您的 Publishable key
+    const SUPABASE_ANON_KEY = "你的SUPABASE公開KEY"; // ⚠️ 請在這裡貼上您的 Publishable key
     
     // 修正大小寫：使用大寫的 Supabase.createClient
     const supabaseClient = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // 👑 2. 雙管理員帳號與密碼對照表（移到最上方防止讀取不到）
+    // 👑 2. 雙管理員帳號與密碼對照表
     const ADMIN_ACCOUNTS = {
         "lau": "okok7890",
         "cherus": "okok7890"
@@ -131,6 +130,7 @@
         }
     };
 
+    // 切換介面
     function showRegisterUI() {
         document.getElementById('loginArea').style.display = "none";
         document.getElementById('registerArea').style.display = "block";
@@ -220,6 +220,113 @@
                 <button class="btn-act" style="background:#27ae60" onclick="exportAllAdmin()">📤 匯出全體大集合 JSON 文件</button>
                 <button class="btn-act" style="background:#95a5a6" onclick="clearAllAdmin()">🗑️ 刪除雲端所有數據 (慎用)</button>
             `;
+            fetchAllRecordsAdmin();
+        } else {
+            document.getElementById('roleLabel').innerText = "";
+            document.getElementById('colL').innerHTML = "";
+            document.getElementById('colR').innerHTML = "";
+            leftJobs.forEach(j => document.getElementById('colL').innerHTML += makeCard(j));
+            rightJobs.forEach(j => document.getElementById('colR').innerHTML += makeCard(j));
+            document.getElementById('footerButtons').innerHTML = `
+                <button class="btn-act" style="background:#3498db" onclick="saveDayCloud()">💾 上傳儲存至雲端</button>
+            `;
+            fetchMyRecords();
+        }
+    }
+
+    function handleTimeInput(el) {
+        if (el.value && !el.value.includes(':')) { }
+        else if (el.value && el.value.split(':').length < 2) el.value += ":00";
+        calc();
+    }
+
+    function makeCard(j) {
+        let h = `<div class="job-card"><div class="job-title ${j.b}">${j.id}. ${j.name}</div>`;
+        if(j.q) h += `<div class="qty-row">數量：<input type="number" class="q-${j.id}" id="q-${j.id}"></div>`;
+        h += `<div class="table-responsive"><table class="time-table">`;
+        for(let i=0; i<j.t; i++){
+            h += `<tr><td><input type="time" class="s-${j.id}" onblur="handleTimeInput(this)"></td>
+                      <td><input type="time" class="e-${j.id}" onblur="handleTimeInput(this)"></td></tr>`;
+        }
+        return h + `</table></div></div>`;
+    }
+
+    function calc() {
+        if(loginSessionUser.role === "admin") return;
+        let total = 0;
+        [...leftJobs, ...rightJobs].forEach(j => {
+            const ss = document.querySelectorAll(`.s-${j.id}`), es = document.querySelectorAll(`.e-${j.id}`);
+            ss.forEach((s, i) => {
+                if(s.value && es[i].value) total += (new Date("1970/01/01 "+es[i].value) - new Date("1970/01/01 "+s.value))/3600000;
+            });
+        });
+        document.getElementById('displayTotal').innerText = Math.max(0, total).toFixed(2);
+    }
+
+    async function saveDayCloud() {
+        const date = document.getElementById('workDate').value;
+        let dayData = [];
+        let totalMin = 0;
+
+        [...leftJobs, ...rightJobs].forEach(j => {
+            const qty = j.q ? document.getElementById(`q-${j.id}`).value : null;
+            const ss = document.querySelectorAll(`.s-${j.id}`), es = document.querySelectorAll(`.e-${j.id}`);
+            let times = [];
+            ss.forEach((s, i) => { 
+                if(s.value && es[i].value) {
+                    times.push({s: s.value, e: es[i].value});
+                    totalMin += (new Date("1970/01/01 "+es[i].value) - new Date("1970/01/01 "+s.value))/60000;
+                }
+            });
+            if(times.length > 0 || qty) dayData.push({ job: j.name, qty, times });
+        });
+        
+        if(dayData.length === 0) return alert("請先輸入數據再儲存！");
+        const hoursCalculated = (totalMin / 60).toFixed(2);
+
+        const { data, error } = await supabaseClient
+            .from('work_records')
+            .insert([
+                { staff_id: loginSessionUser.id, staff_name: loginSessionUser.name, work_date: date, hours: hoursCalculated, details: dayData }
+            ]);
+
+        if (error) alert("❌ 雲端儲存失敗：" + error.message);
+        else { alert("💾 數據已成功同步到雲端後台！"); location.reload(); }
+    }
+
+    async function fetchMyRecords() {
+        const { data, error } = await supabaseClient
+            .from('work_records')
+            .select('*')
+            .eq('staff_id', loginSessionUser.id)
+            .order('work_date', { ascending: false });
+
+        if (error) return console.error(error);
+        const box = document.getElementById('historyBox');
+        box.innerHTML = "";
+        data.forEach(row => {
+            box.innerHTML += `<div class="history-item">
+                <button class="btn-del" onclick="deleteRecordCloud(${row.id})">刪除</button>
+                <strong>${row.work_date}</strong> | <span style="color:#2980b9; font-weight:bold;">${row.hours}h</span>
+                <div style="font-size:0.8rem; color:#666; margin-top:4px;">${row.details.map(d => d.job).join(', ')}</div>
+            </div>`;
+        });
+    }
+
+    async function deleteRecordCloud(rowId) {
+        if(!confirm("確定要從雲端刪除這筆紀錄嗎？")) return;
+        const { error } = await supabaseClient.from('work_records').delete().eq('id', rowId);
+        if(error) alert("刪除失敗：" + error.message);
+        else fetchMyRecords();
+    }
+
+    async function fetchAllRecordsAdmin() {
+        const { data, error } = await supabaseClient
+            .from('work_records')
+            .select('*')
+            .order('work_date', { ascending: false });
+
+        if (error) return alert("載入雲端數據失敗：" + error.message);
         const box = document.getElementById('historyBox');
         box.innerHTML = "";
         data.forEach(row => {
