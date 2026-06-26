@@ -67,11 +67,11 @@
         
         /* 工作卡片 */
         .job-card { border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: calc(1rem * var(--user-scale, 1.0)) }
-        .job-title { padding: 10px; font-size: 1.15rem; font-weight: bold; text-align: center; color: white; }
-        .qty-row { background: #fff9db; padding: 8px; text-align: center; border-bottom: 1px solid #ccc; font-size: 0.95rem; font-weight: bold; }
-        .qty-row input[type="number"] { width: 80px; height: 28px; text-align: center; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .time-table { width: 100%; border-collapse: collapse; min-width: 260px; }
+        .job-title { padding: 10px; font-size: calc(1rem * var(--user-scale, 1.0)) ; font-weight: bold; text-align: center; color: white; }
+        .qty-row { background: #fff9db; padding: 8px; text-align: center; border-bottom: 1px solid #ccc; font-size: calc(1rem * var(--user-scale, 1.0)); font-weight: bold; }
+        .qty-row input[type="number"] { width: 80px; height: 28px; text-align: center; font-size: calc(1rem * var(--user-scale, 1.0)) ; border: 1px solid #ccc; border-radius: 4px; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: calc(1rem * var(--user-scale, 1.0)) }
+        .time-table { width: 100%; border-collapse: collapse; min-width: 260px; font-size: calc(1rem * var(--user-scale, 1.0)) }
         .time-table td { border: 1px solid #eee; padding: 6px; text-align: center; font-size: calc(1rem * var(--user-scale, 1.0)) }
         input[type="time"] { width: 90%; height: 36px; font-size: calc(1rem * var(--user-scale, 1.0)); border: 1px solid #ccc; border-radius: 4px; background: #fafafa; text-align: center; }
         
@@ -330,11 +330,11 @@
     // 全新 1-5 級按比例縮放函數（3 為 100% 基準，每級差 10%）
       function changeTextSize(level) {
         let scale = 1.0;
-        if (level === "1") scale = 0.8;
-        if (level === "2") scale = 0.9;
+        if (level === "1") scale = 0.50;
+        if (level === "2") scale = 0.75;
         if (level === "3") scale = 1.0;
-        if (level === "4") scale = 1.1;
-        if (level === "5") scale = 1.2;
+        if (level === "4") scale = 1.25;
+        if (level === "5") scale = 1.50;
 
         // 直接等比例改變網頁整體的基礎字型大小與卡片文字大小
         document.documentElement.style.setProperty('--user-scale', scale);
