@@ -103,12 +103,6 @@
     
     // 呼叫官方標準的 window.supabase.createClient 建立連線
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // 👑 雙管理員帳號與密碼對照表
-    const ADMIN_ACCOUNTS = {
-        "lau": "okok7890",
-        "cherus": "okok7890"
-    };
 
     let loginSessionUser = null; 
 
@@ -139,6 +133,12 @@
         document.getElementById('registerArea').style.display = "none";
         document.getElementById('loginArea').style.display = "block";
     }
+    
+    // 👑 雙管理員帳號與密碼對照表
+    const ADMIN_ACCOUNTS = {
+        "lau": "okok7890",
+        "cherus": "okok7890"
+    };
 
     // 🔒 登入驗證
     async function handleLogin() {
