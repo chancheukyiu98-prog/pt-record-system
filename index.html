@@ -98,9 +98,10 @@
 <script>
     // 🌐 1. 雲端連線設定（最優先初始化）
     const SUPABASE_URL = "https://supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_n1yE6KcuaA7CC5agZc1rPA_FfmzDYGq"; // ⚠️ 請在這裡貼上您的 Publishable key
+    // ⚠️ 請務必把下方引號內的文字替換為您在 Supabase 複製的 Publishable key 密鑰
+    const SUPABASE_ANON_KEY = "sb_publishable_n1yE6KcuaA7CC5agZc1rPA_FfmzDYGq"; 
     
-    // 修正大小寫：使用大寫的 Supabase.createClient
+    // 初始化雲端客戶端
     const supabaseClient = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     // 👑 2. 雙管理員帳號與密碼對照表
@@ -130,7 +131,6 @@
         }
     };
 
-    // 切換介面
     function showRegisterUI() {
         document.getElementById('loginArea').style.display = "none";
         document.getElementById('registerArea').style.display = "block";
@@ -172,7 +172,7 @@
         }
     }
 
-    // 🛠️ 生產新用戶 (需輸入任一管理員密碼驗證)
+    // 🛠 Ext. 生產新用戶
     async function handleCreateUser() {
         const regID = document.getElementById('regID').value.trim();
         const regName = document.getElementById('regName').value.trim();
@@ -180,7 +180,8 @@
         const verify = document.getElementById('adminVerifyPwd').value.trim();
 
         if(!regID || !regName || !regPwd) return alert("請填寫完整的新員工帳號欄位！");
-        if(verify !== "okok7890") return alert("❌ 驗證失敗：管理員通行密碼不正確，無法生產用戶！");
+
+            if(verify !== "okok7890") return alert("❌ 驗證失敗：管理員通行密碼不正確，無法生產用戶！");
 
         const { error } = await supabaseClient
             .from('staff_users')
