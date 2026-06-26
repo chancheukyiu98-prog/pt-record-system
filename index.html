@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>團隊功課紀錄系統 - 多Admin雲端同步版</title>
     <!-- 使用官方 unpkg 載入 Supabase SDK，保證全平台全網路 100% 相容 -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com"></script>
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; }
@@ -15,13 +15,54 @@
         .login-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
         .btn-login { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .toggle-reg-btn { position: absolute; right: 12px; top: 12px; background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
-        
-        /* 主版面 */
-        .header { background: #2c3e50; color: white; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-radius: 8px; margin-bottom: 12px; position: relative; }
-        .btn-logout { position: absolute; right: 12px; top: 12px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
-        .header-meta { display: flex; justify-content: space-between; align-items: center; font-size: 1.05rem; margin-top: 15px; }
+
+        /* 主版面 - 改為永久置頂 */
+        .header { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            z-index: 999; 
+            background: #2c3e50; 
+            color: white; 
+            padding: 12px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        /* 修正右側控制區排版，讓登出鍵與日期靠右併排且不重疊 */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-logout { 
+            background: #e74c3c; 
+            color: white; 
+            border: none; 
+            padding: 6px 12px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 0.85rem; 
+            white-space: nowrap;
+        }
+        .header-meta { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            font-size: 1.05rem; 
+            margin-top: 5px; 
+        }
         .header-total { background: rgba(255,255,255,0.15); padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        .main-layout { display: flex; flex-direction: column; gap: 15px; }
+        
+        /* 增加置頂框架後下方的推擠間距，避免內容被遮擋 */
+        .main-layout { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            margin-top: 130px; /* 為置頂框架留出空間 */
+        }
         .input-side { display: flex; flex-direction: column; gap: 12px; }
         
         /* 工作卡片 */
@@ -70,10 +111,13 @@
 <!-- 2. 主要工作區 (預設隱藏) -->
 <div id="mainArea" style="display: none;">
     <div class="header">
-        <button class="btn-logout" onclick="handleLogout()">登出</button>
         <div class="header-meta">
             <div style="font-weight:bold;">👤 當前用戶：[<span id="idLabel"></span>] <span id="nameLabel"></span> <span id="roleLabel" style="color:#f1c40f;"></span></div>
-            <div><input type="date" id="workDate" onchange="calc()" style="font-size:1rem; padding:3px; border-radius:4px;"></div>
+            <!-- 調整結構：將登出按鈕移到日期選擇器的左邊 -->
+            <div class="header-controls">
+                <button class="btn-logout" onclick="handleLogout()">登出</button>
+                <input type="date" id="workDate" onchange="calc()" style="font-size:1rem; padding:4px; border-radius:4px; border:1px solid #ccc;">
+            </div>
         </div>
         <div class="header-total">
             <span>⏱️ 當日總計：</span>
