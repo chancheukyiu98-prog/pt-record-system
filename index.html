@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
-        body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; }
+        body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; font-size: calc(1rem * var(--user-scale, 1.0)); }
         
         /* 登入與註冊介面 */
         .login-container { max-width: 400px; margin: 30px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; position: relative; }
@@ -66,14 +66,14 @@
         .input-side { display: flex; flex-direction: column; gap: 12px; }
         
         /* 工作卡片 */
-        .job-card { border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .job-card { border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: calc(1rem * var(--user-scale, 1.0)) }
         .job-title { padding: 10px; font-size: 1.15rem; font-weight: bold; text-align: center; color: white; }
         .qty-row { background: #fff9db; padding: 8px; text-align: center; border-bottom: 1px solid #ccc; font-size: 0.95rem; font-weight: bold; }
         .qty-row input[type="number"] { width: 80px; height: 28px; text-align: center; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .time-table { width: 100%; border-collapse: collapse; min-width: 260px; }
-        .time-table td { border: 1px solid #eee; padding: 6px; text-align: center; }
-        input[type="time"] { width: 90%; height: 36px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; background: #fafafa; text-align: center; }
+        .time-table td { border: 1px solid #eee; padding: 6px; text-align: center; font-size: calc(1rem * var(--user-scale, 1.0)) }
+        input[type="time"] { width: 90%; height: 36px; font-size: calc(1rem * var(--user-scale, 1.0)); border: 1px solid #ccc; border-radius: 4px; background: #fafafa; text-align: center; }
         
         /* 歷史紀錄與 Admin 區 */
         .record-side { background: white; border: 1px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -130,17 +130,19 @@
             <!-- 調整結構：將登出按鈕移到日期選擇器的左邊 -->
             <!-- 尋找主要工作區內的這一整段，並進行替換： -->
             <div class="header-controls">
-                <!-- 1. 新增字型大小選擇器 -->
-                <select id="textSizeSelect" onchange="changeTextSize(this.value)" style="font-size:0.85rem; padding:5px; border-radius:4px; border:1px solid #ccc; background: white;">
-                    <option value="normal">標準字體</option>
-                    <option value="medium">中文字</option>
-                    <option value="large">大字體</option>
+                <!-- 替換字型大小選擇器為 1 到 5 級 -->
+                <select id="textSizeSelect" onchange="changeTextSize(this.value)" style="font-size:0.85rem; padding:5px; border-radius:4px; border:1px solid #ccc; background: white; font-weight: bold;">
+                    <option value="1">字體大小（1）</option>
+                    <option value="2">字體大小（2）</option>
+                    <option value="3" selected>字體大小（3）</option>
+                    <option value="4">字體大小（4）</option>
+                    <option value="5">字體大小（5）</option>
                 </select>
     
-                <!-- 2. 原有的登出按鈕與日期選擇器保持不變 -->
                 <button class="btn-logout" onclick="handleLogout()">登出</button>
                 <input type="date" id="workDate" onchange="calc()" style="font-size:1rem; padding:4px; border-radius:4px; border:1px solid #ccc;">
             </div>
+
 
         </div>
         <div class="header-total">
@@ -187,6 +189,10 @@
     ];
 
     window.onload = () => {
+        // 💡 新增這兩行：網頁載入時自動讀取上一次儲存的字體級別（預設是 3）
+           const savedFontLevel = localStorage.getItem('team_font_level') || "3";
+           changeTextSize(savedFontLevel);
+        
         const saved = localStorage.getItem('team_user_session');
         if(saved) {
             loginSessionUser = JSON.parse(saved);
@@ -321,17 +327,26 @@
     }
 
     // 新增切換字型大小的功能
-    function changeTextSize(size) {
-        // 先移除舊的字體級別
-        document.body.classList.remove('ts-medium', 'ts-large');
+    // 全新 1-5 級按比例縮放函數（3 為 100% 基準，每級差 10%）
+      function changeTextSize(level) {
+        let scale = 1.0;
+        if (level === "1") scale = 0.8;
+        if (level === "2") scale = 0.9;
+        if (level === "3") scale = 1.0;
+        if (level === "4") scale = 1.1;
+        if (level === "5") scale = 1.2;
+
+        // 直接等比例改變網頁整體的基礎字型大小與卡片文字大小
+        document.documentElement.style.setProperty('--user-scale', scale);
     
-        // 根據選單切換對應的級別
-        if (size === 'medium') {
-            document.body.classList.add('ts-medium');
-        } else if (size === 'large') {
-            document.body.classList.add('ts-large');
-        }
+        // 記憶使用者的字體設定
+        localStorage.setItem('team_font_level', level);
+    
+        // 同步更新下拉選單的顯示狀態
+        const select = document.getElementById('textSizeSelect');
+        if (select) select.value = level;
     }
+
 
     
     function calc() {
