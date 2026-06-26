@@ -83,6 +83,20 @@
         .footer { padding: 12px 10px; background: #f8f9fa; border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px; }
         .btn-act { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
         .bg-dark { background: var(--dark-blue); } .bg-light { background: var(--light-blue); }
+       
+        /* 新增在 </style> 之前 */
+        body.ts-medium .job-card, body.ts-medium .time-table td, body.ts-medium input {
+            font-size: 1.15rem !important;
+        }
+        body.ts-large .job-card, body.ts-large .time-table td, body.ts-large input {
+        font-size: 1.35rem !important;
+        }
+        /* 防止加大字體時時間輸入框高度不夠 */
+        body.ts-medium input[type="time"], body.ts-large input[type="time"] {
+            height: 42px !important;
+        }
+
+        
     </style>
 </head>
 <body>
@@ -114,10 +128,20 @@
         <div class="header-meta">
             <div style="font-weight:bold;">👤 當前用戶：[<span id="idLabel"></span>] <span id="nameLabel"></span> <span id="roleLabel" style="color:#f1c40f;"></span></div>
             <!-- 調整結構：將登出按鈕移到日期選擇器的左邊 -->
+            <!-- 尋找主要工作區內的這一整段，並進行替換： -->
             <div class="header-controls">
+                <!-- 1. 新增字型大小選擇器 -->
+                <select id="textSizeSelect" onchange="changeTextSize(this.value)" style="font-size:0.85rem; padding:5px; border-radius:4px; border:1px solid #ccc; background: white;">
+                    <option value="normal">標準字體</option>
+                    <option value="medium">中文字</option>
+                    <option value="large">大字體</option>
+                </select>
+    
+                <!-- 2. 原有的登出按鈕與日期選擇器保持不變 -->
                 <button class="btn-logout" onclick="handleLogout()">登出</button>
                 <input type="date" id="workDate" onchange="calc()" style="font-size:1rem; padding:4px; border-radius:4px; border:1px solid #ccc;">
             </div>
+
         </div>
         <div class="header-total">
             <span>⏱️ 當日總計：</span>
@@ -296,6 +320,20 @@
         return h + `</table></div></div>`;
     }
 
+    // 新增切換字型大小的功能
+    function changeTextSize(size) {
+        // 先移除舊的字體級別
+        document.body.classList.remove('ts-medium', 'ts-large');
+    
+        // 根據選單切換對應的級別
+        if (size === 'medium') {
+            document.body.classList.add('ts-medium');
+        } else if (size === 'large') {
+            document.body.classList.add('ts-large');
+        }
+    }
+
+    
     function calc() {
         if(loginSessionUser.role === "admin") return;
         let total = 0;
