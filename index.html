@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>團隊功課紀錄系統 - 多Admin雲端同步版</title>
     <!-- 使用官方 unpkg 載入 Supabase SDK，保證全平台全網路 100% 相容 -->
-    <!-- 替換成這行： -->
-    <script src="https://cloudflare.com"></script>
-
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
         body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; }
@@ -17,50 +15,13 @@
         .login-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
         .btn-login { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .toggle-reg-btn { position: absolute; right: 12px; top: 12px; background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
-
-        /* 1. 將 header 改為固定置頂 */
-.header { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    right: 0; 
-    z-index: 999; 
-    background: #2c3e50; 
-    color: white; 
-    padding: 12px; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 8px; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-}
-
-/* 2. 新增此控制區：讓登出鍵與日期併排不重疊 */
-.header-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* 3. 移除 btn-logout 的絕對定位，改為一般按鈕樣式 */
-.btn-logout { 
-    background: #e74c3c; 
-    color: white; 
-    border: none; 
-    padding: 6px 12px; 
-    border-radius: 4px; 
-    cursor: pointer; 
-    font-size: 0.85rem; 
-    white-space: nowrap;
-}
-
-/* 4. 修改推擠間距，避免下方卡片被置頂的 header 擋住 */
-.main-layout { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 15px; 
-    margin-top: 130px; /* 留出置頂空間 */
-}
-
+        
+        /* 主版面 */
+        .header { background: #2c3e50; color: white; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-radius: 8px; margin-bottom: 12px; position: relative; }
+        .btn-logout { position: absolute; right: 12px; top: 12px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+        .header-meta { display: flex; justify-content: space-between; align-items: center; font-size: 1.05rem; margin-top: 15px; }
+        .header-total { background: rgba(255,255,255,0.15); padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .main-layout { display: flex; flex-direction: column; gap: 15px; }
         .input-side { display: flex; flex-direction: column; gap: 12px; }
         
         /* 工作卡片 */
@@ -109,20 +70,16 @@
 <!-- 2. 主要工作區 (預設隱藏) -->
 <div id="mainArea" style="display: none;">
     <div class="header">
-    <div class="header-meta">
-        <div style="font-weight:bold;">👤 當前用戶：[<span id="idLabel"></span>] <span id="nameLabel"></span> <span id="roleLabel" style="color:#f1c40f;"></span></div>
-        <!-- 將登出按鈕移到日期選擇器左邊，並用 controls 包住 -->
-        <div class="header-controls">
-            <button class="btn-logout" onclick="handleLogout()">登出</button>
-            <input type="date" id="workDate" onchange="calc()" style="font-size:1rem; padding:4px; border-radius:4px; border:1px solid #ccc;">
+        <button class="btn-logout" onclick="handleLogout()">登出</button>
+        <div class="header-meta">
+            <div style="font-weight:bold;">👤 當前用戶：[<span id="idLabel"></span>] <span id="nameLabel"></span> <span id="roleLabel" style="color:#f1c40f;"></span></div>
+            <div><input type="date" id="workDate" onchange="calc()" style="font-size:1rem; padding:3px; border-radius:4px;"></div>
+        </div>
+        <div class="header-total">
+            <span>⏱️ 當日總計：</span>
+            <span id="displayTotal" style="padding:2px 12px; border-radius:4px; background:#fff; color:#000;">0.00</span> hrs
         </div>
     </div>
-    <div class="header-total">
-        <span>⏱️ 當日總計：</span>
-        <span id="displayTotal" style="padding:2px 12px; border-radius:4px; background:#fff; color:#000;">0.00</span> hrs
-    </div>
-</div>
-
 
     <div class="main-layout">
         <div class="input-side" id="inputSideUI">
@@ -178,7 +135,12 @@
         document.getElementById('loginArea').style.display = "block";
     }
     
-  
+    // 👑 雙管理員帳號與密碼對照表
+    const ADMIN_ACCOUNTS = {
+        "lau": "okok7890",
+        "cherus": "okok7890"
+    };
+
     // 🔒 登入驗證
     async function handleLogin() {
         const id = document.getElementById('loginID').value.trim();
@@ -279,18 +241,16 @@
         calc();
     }
 
-// 尋找這一行並替換：
-function makeCard(j) {
-    let h = `<div class="job-card"><div class="job-title ${j.b}">${j.id}. ${j.name}</div>`;
-    if(j.q) h += `<div class="qty-row">數量：<input type="number" class="q-${j.id}" id="q-${j.id}"></div>`;
-    h += `<div class="table-responsive"><table class="time-table">`;
-    for(let i=0; i<j.t; i++){
-        h += `<tr><td><input type="time" class="s-${j.id}" onblur="handleTimeInput(this)"></td>
-                  <td><input type="time" class="e-${j.id}" onblur="handleTimeInput(this)"></td></tr>`;
+    function makeCard(j) {
+        let h = `<div class="job-card"><div class="job-title ${j.b}">${j.id}. ${j.name}</div>`;
+        if(j.q) h += `<div class="qty-row">數量：<input type="number" class="q-${j.id}" id="q-${j.id}"></div>`;
+        h += `<div class="table-responsive"><table class="time-table">`;
+        for(let i=0; i<j.t; i++){
+            h += `<tr><td><input type="time" class="s-${j.id}" onblur="handleTimeInput(this)"></td>
+                      <td><input type="time" class="e-${j.id}" onblur="handleTimeInput(this)"></td></tr>`;
+        }
+        return h + `</table></div></div>`;
     }
-    return h + `</table></div></div>`;
-}
-
 
     function calc() {
         if(loginSessionUser.role === "admin") return;
