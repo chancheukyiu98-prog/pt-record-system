@@ -16,21 +16,22 @@
         .btn-login { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .toggle-reg-btn { position: absolute; right: 12px; top: 12px; background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
 
-        /* 主版面 - 改為永久置頂 */
-        .header { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            z-index: 999; 
-            background: #2c3e50; 
-            color: white; 
-            padding: 12px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-        }
+        /* 尋找並將 .header 修改為： */
+.header { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    z-index: 999; 
+    background: #2c3e50; 
+    color: white; 
+    padding: 12px; 
+    display: none; /* 💡 關鍵補上這行：讓它在登入前預設完全隱藏，不穿透出來 */
+    flex-direction: column; 
+    gap: 8px; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
         /* 修正右側控制區排版，讓登出鍵與日期靠右併排且不重疊 */
         .header-controls {
             display: flex;
@@ -283,35 +284,43 @@
     }
 
     function initApp() {
-        document.getElementById('loginArea').style.display = "none";
-        document.getElementById('registerArea').style.display = "none";
-        document.getElementById('mainArea').style.display = "block";
-        
-        document.getElementById('idLabel').innerText = loginSessionUser.id;
-        document.getElementById('nameLabel').innerText = loginSessionUser.name;
-        document.getElementById('workDate').valueAsDate = new Date();
+    document.getElementById('loginArea').style.display = "none";
+    document.getElementById('registerArea').style.display = "none";
+    document.getElementById('mainArea').style.display = "block";
+    
+    // 💡 關鍵新增：登入成功進入主畫面後，才正式把置頂頂部列亮出來
+    const headerEl = document.querySelector('.header');
+    if (headerEl) headerEl.style.display = "flex";
+    
+    document.getElementById('idLabel').innerText = loginSessionUser.id;
+    document.getElementById('nameLabel').innerText = loginSessionUser.name;
+    document.getElementById('workDate').valueAsDate = new Date();
 
-        if(loginSessionUser.role === "admin") {
-            document.getElementById('roleLabel').innerText = "(管理員)";
-            document.getElementById('inputSideUI').style.display = "none"; 
-            document.getElementById('recordTitle').innerText = "📊 全體員工雲端紀錄明細";
-            document.getElementById('footerButtons').innerHTML = `
-                <button class="btn-act" style="background:#27ae60" onclick="exportAllAdmin()">📤 匯出全體大集合 JSON 文件</button>
-                <button class="btn-act" style="background:#95a5a6" onclick="clearAllAdmin()">🗑️ 刪除雲端所有數據 (慎用)</button>
-            `;
-            fetchAllRecordsAdmin();
-        } else {
-            document.getElementById('roleLabel').innerText = "";
-            document.getElementById('colL').innerHTML = "";
-            document.getElementById('colR').innerHTML = "";
-            leftJobs.forEach(j => document.getElementById('colL').innerHTML += makeCard(j));
-            rightJobs.forEach(j => document.getElementById('colR').innerHTML += makeCard(j));
-            document.getElementById('footerButtons').innerHTML = `
-                <button class="btn-act" style="background:#3498db" onclick="saveDayCloud()">💾 上傳儲存至雲端</button>
-            `;
-            fetchMyRecords();
-        }
+    if(loginSessionUser.role === "admin") {
+        document.getElementById('roleLabel').innerText = "(管理員)";
+        document.getElementById('inputSideUI').style.display = "none"; 
+        document.getElementById('recordTitle').innerText = "📊 全體員工雲端紀錄明細";
+        document.getElementById('footerButtons').innerHTML = `
+            <button class="btn-act" style="background:#27ae60" onclick="exportAllAdmin()">📤 匯出全體大集合 JSON 文件</button>
+            <button class="btn-act" style="background:#95a5a6" onclick="clearAllAdmin()">🗑️ 刪除雲端所有數據 (慎用)</button>
+        `;
+        fetchAllRecordsAdmin();
+    } else {
+        document.getElementById('roleLabel').innerText = "";
+        document.getElementById('colL').innerHTML = "";
+        document.getElementById('colR').innerHTML = "";
+        leftJobs.forEach(j => document.getElementById('colL').innerHTML += makeCard(j));
+        rightJobs.forEach(j => document.getElementById('colR').innerHTML += makeCard(j));
+        document.getElementById('footerButtons').innerHTML = `
+            <button class="btn-act" style="background:#3498db" onclick="saveDayCloud()">💾 上傳儲存至雲端</button>
+        `;
+        fetchMyRecords();
     }
+    
+    // 確保一初始化完，就能立即執行一次時數與時間範圍計算
+    calc();
+}
+
 
     function handleTimeInput(el) {
         if (el.value && !el.value.includes(':')) { }
