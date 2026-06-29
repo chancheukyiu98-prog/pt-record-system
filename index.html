@@ -17,6 +17,7 @@
         .toggle-reg-btn { position: absolute; right: 12px; top: 12px; background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
 
         /* 尋找並將 .header 修改為： */
+    /* 尋找 .header 並更新為： */
     .header { 
         position: fixed; 
         top: 0; 
@@ -30,7 +31,18 @@
         flex-direction: column; 
         gap: 8px; 
         box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+
+        /* 💡 關鍵新增這兩行：在還沒登入時，讓這個飄在空中的固定框架徹底隱形且不擋住按鈕 */
+        visibility: hidden;
+        opacity: 0;
     }
+
+    /* 💡 關鍵新增這一整段：當大盒子 mainArea 被點亮（顯示）時，置頂框架才同步現形 */
+    #mainArea .header {
+        visibility: visible;
+        opacity: 1;
+    }    
+
         /* 修正右側控制區排版，讓登出鍵與日期靠右併排且不重疊 */
         .header-controls {
             display: flex;
