@@ -8,20 +8,8 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
-        body { 
-            font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; 
-            background: #f0f3f5; 
-            margin: 0; 
-            padding: 10px; 
-            box-sizing: border-box; 
-            font-size: calc(1rem * var(--user-scale, 1.0));
-        }
+        body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; font-size: calc(1rem * var(--user-scale, 1.0)); }
         
-        /* 讓所有卡片、表格與輸入選單強制連動 1-5 級縮放比例 */
-        .job-card, .time-table td, input, select {
-            font-size: calc(1rem * var(--user-scale, 1.0)) !important;
-        }
-
         /* 登入與註冊介面 */
         .login-container { max-width: 400px; margin: 30px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; position: relative; }
         .login-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
@@ -29,7 +17,7 @@
         .toggle-reg-btn { position: absolute; right: 12px; top: 12px; background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
 
         /* 尋找並將 .header 修改為： */
-        /* 尋找 .header 並更新為： */
+    /* 尋找 .header 並更新為： */
     .header { 
         position: fixed; 
         top: 0; 
@@ -43,6 +31,17 @@
         flex-direction: column; 
         gap: 8px; 
         box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+
+        /* 💡 關鍵新增這兩行：在還沒登入時，讓這個飄在空中的固定框架徹底隱形且不擋住按鈕 */
+        visibility: hidden;
+        opacity: 0;
+    }
+
+    /* 💡 關鍵新增這一整段：當大盒子 mainArea 被點亮（顯示）時，置頂框架才同步現形 */
+    #mainArea .header {
+        visibility: visible;
+        opacity: 1;
+    }    
 
         /* 修正右側控制區排版，讓登出鍵與日期靠右併排且不重疊 */
         .header-controls {
@@ -61,15 +60,15 @@
             white-space: nowrap;
         }
         
-        .header-meta { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            font-size: 1.05rem; 
-            margin-top: 5px; 
-            flex-wrap: wrap; /* 💡 防止在極窄的手機上爆版面，會自動溫和地換行 */
-            gap: 8px;
-        }
+    .header-meta { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        font-size: 1.05rem; 
+        margin-top: 5px; 
+        flex-wrap: wrap; /* 💡 防止在極窄的手機上爆版面，會自動溫和地換行 */
+        gap: 8px;
+    }
 
         .header-total { background: rgba(255,255,255,0.15); padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
         
@@ -83,13 +82,14 @@
         .input-side { display: flex; flex-direction: column; gap: 12px; }
         
         /* 工作卡片 */
-        .job-card { border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .job-title { padding: 10px; font-size: 1.15rem; font-weight: bold; text-align: center; color: white; }
-        .qty-row { background: #fff9db; padding: 8px; text-align: center; border-bottom: 1px solid #ccc; font-size: 0.95rem; font-weight: bold; }
-        .qty-row input[type="number"] { width: 80px; height: 28px; text-align: center; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .time-table { width: 100%; border-collapse: collapse; min-width: 260px; }
-        .time-table td { border: 1px solid #eee; padding: 6px; text-align: center; }
+        .job-card { border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: calc(1rem * var(--user-scale, 1.0)) }
+        .job-title { padding: 10px; font-size: calc(1rem * var(--user-scale, 1.0)) ; font-weight: bold; text-align: center; color: white; }
+        .qty-row { background: #fff9db; padding: 8px; text-align: center; border-bottom: 1px solid #ccc; font-size: calc(1rem * var(--user-scale, 1.0)); font-weight: bold; }
+        .qty-row input[type="number"] { width: 80px; height: 28px; text-align: center; font-size: calc(1rem * var(--user-scale, 1.0)) ; border: 1px solid #ccc; border-radius: 4px; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: calc(1rem * var(--user-scale, 1.0)) }
+        .time-table { width: 100%; border-collapse: collapse; min-width: 260px; font-size: calc(1rem * var(--user-scale, 1.0)) }
+        .time-table td { border: 1px solid #eee; padding: 6px; text-align: center; font-size: calc(1rem * var(--user-scale, 1.0)) }
+        input[type="time"] { width: 90%; height: 36px; font-size: calc(1rem * var(--user-scale, 1.0)); border: 1px solid #ccc; border-radius: 4px; background: #fafafa; text-align: center; }
         
         /* 歷史紀錄與 Admin 區 */
         .record-side { background: white; border: 1px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
