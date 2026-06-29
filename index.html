@@ -133,8 +133,9 @@
 </div>
 
 <!-- 2. 主要工作區 (預設隱藏) -->
+<!-- 💡 核心關鍵：必須在 header 的最上方加上這一行，把主畫面元件鎖在盒子裡！ -->
 <div id="mainArea" style="display: none;">
-    
+
     <div class="header">
         <div class="header-meta">
             <!-- 左側：名字 + 日期選擇器 + 當天時間總覽 -->
@@ -157,19 +158,15 @@
             </div>
         </div>
 
-        <!-- 最核心的當日總計時數列 -->
+        <!-- 成功補回：最核心的當日總計時數列 -->
         <div class="header-total">
             <span>⏱️ 當日總計：</span>
             <span id="displayTotal" style="padding:2px 12px; border-radius:4px; background:#fff; color:#000;">0.00</span> hrs
         </div>
     </div>
 
-        </div>
-        <div class="header-total">
-            <span>⏱️ 當日總計：</span>
-            <span id="displayTotal" style="padding:2px 12px; border-radius:4px; background:#fff; color:#000;">0.00</span> hrs
-        </div>
-    </div>
+    <!-- 💡 提醒：這裡往下接著您原本的 <div class="main-layout"> ... </div>，並且在最後確保有另一個 </div> 關閉 mainArea 即可 -->
+
 
     <div class="main-layout">
         <div class="input-side" id="inputSideUI">
