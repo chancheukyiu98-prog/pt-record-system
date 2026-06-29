@@ -99,8 +99,20 @@
         .footer { padding: 12px 10px; background: #f8f9fa; border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px; }
         .btn-act { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
         .bg-dark { background: var(--dark-blue); } .bg-light { background: var(--light-blue); }
-        
+    /* 💡 直接加在 </style> 之前 */
+
+    /* 當主要工作區處於隱藏狀態時，強制將所有主畫面的元件徹底消音不顯示 */
+    #mainArea[style*="display: none"] .header,
+    #mainArea[style*="display: none"] .header-total,
+    #mainArea[style*="display: none"] .record-side {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }     
     </style>
+
 </head>
 <body>
 
