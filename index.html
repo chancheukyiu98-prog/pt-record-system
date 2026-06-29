@@ -19,6 +19,7 @@
         /* 尋找並將 .header 修改為： */
     /* 尋找 .header 並更新為： */
     /* 尋找並將原有的 .header 相關樣式精準替換為： */
+    /* 尋找並將 .header 樣式精準修正為以下這段（把 display: none 拿掉）： */
     .header { 
         position: fixed; 
         top: 0; 
@@ -28,15 +29,11 @@
         background: #2c3e50; 
         color: white; 
         padding: 12px; 
-    
-        /* 💡 核心修正：預設不使用彈性排版，直接強制完全隱形（這比 visibility 更安全） */
-        display: none !important; 
-    
+        display: flex; /* 💡 恢復成常態的彈性排版，不在此處強制隱藏 */
         flex-direction: column; 
         gap: 8px; 
         box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     }
-
 
         /* 修正右側控制區排版，讓登出鍵與日期靠右併排且不重疊 */
         .header-controls {
@@ -290,18 +287,21 @@ div[id="mainArea"][style*="display: none"] .record-side {
         location.reload();
     }
 
+    // 尋找 function initApp() { 區塊並在最前面微調：
     function initApp() {
-    document.getElementById('loginArea').style.display = "none";
-    document.getElementById('registerArea').style.display = "none";
-    document.getElementById('mainArea').style.display = "block";
+        document.getElementById('loginArea').style.display = "none";
+        document.getElementById('registerArea').style.display = "none";
+        document.getElementById('mainArea').style.display = "block";
     
-    // 💡 關鍵新增：登入成功進入主畫面後，才正式把置頂頂部列亮出來
-    const headerEl = document.querySelector('.header');
-    if (headerEl) headerEl.style.display = "flex";
+        // 💡 關鍵新增這一行：登入成功後，用最高優先權強制把置頂控制列點亮！
+        const headerEl = document.querySelector('.header');
+        if (headerEl) headerEl.style.setProperty('display', 'flex', 'important');
     
-    document.getElementById('idLabel').innerText = loginSessionUser.id;
-    document.getElementById('nameLabel').innerText = loginSessionUser.name;
-    document.getElementById('workDate').valueAsDate = new Date();
+        document.getElementById('idLabel').innerText = loginSessionUser.id;
+        document.getElementById('nameLabel').innerText = loginSessionUser.name;
+        document.getElementById('workDate').valueAsDate = new Date();
+        // ... 後續的代碼完全保持不變 ...
+
 
     if(loginSessionUser.role === "admin") {
         document.getElementById('roleLabel').innerText = "(管理員)";
