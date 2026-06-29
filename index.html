@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>團隊功課紀錄系統 - 多Admin雲端同步版</title>
     <!-- 使用官方 cdnjs 載入 Supabase SDK，保證 100% 穩定相容 -->
-    <script src="https://cloudflare.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
         body { 
@@ -166,7 +166,7 @@
 
 <script>
     // 🌐 雲端設定與資料庫金鑰
-    const SUPABASE_URL = "https://supabase.co";
+    const SUPABASE_URL = "https://rdyakbvnlvlkceptcazl.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeWFrYnZubHZsa2NlcHRjYXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjc3NzcsImV4cCI6MjA5Nzk0Mzc3N30.URFtuiLb3k1xBCnq6nwjAVieGhnDjoxV-mpz4hKKaDA"; 
     
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
