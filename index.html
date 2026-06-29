@@ -95,16 +95,11 @@
         .btn-act { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
         .bg-dark { background: var(--dark-blue); } .bg-light { background: var(--light-blue); }
     
-    
-    #mainArea[style*="display: none"],
-    #mainArea[style*="display: none"] .header,
-    #mainArea[style*="display: none"] .record-side {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        height: 0 !important;
-        overflow: hidden !important;
-    }
+    /* 💡 改用這段：只有當 mainArea 真的「處於隱藏狀態」時才進行封鎖；一旦登入成功 style 變成 display: block，這條封鎖線就會自動完全消失，頂部列就能完美現形！ */
+div[id="mainArea"][style*="display: none"] .header,
+div[id="mainArea"][style*="display: none"] .record-side {
+    display: none !important;
+}
 
     </style>
 
