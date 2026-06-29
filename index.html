@@ -4,11 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>團隊功課紀錄系統 - 多Admin雲端同步版</title>
-    <!-- 使用官方 unpkg 載入 Supabase SDK，保證全平台全網路 100% 相容 -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- 使用官方 cdnjs 載入 Supabase SDK，保證 100% 穩定相容 -->
+    <script src="https://cloudflare.com"></script>
     <style>
         :root { --dark-blue: #154360; --light-blue: #2980b9; }
-        body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f0f3f5; margin: 0; padding: 10px; box-sizing: border-box; font-size: calc(1rem * var(--user-scale, 1.0)); }
+        body { 
+            font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; 
+            background: #f0f3f5; 
+            margin: 0; 
+            padding: 10px; 
+            box-sizing: border-box; 
+            font-size: calc(1rem * var(--user-scale, 1.0));
+        }
+        
+        /* 讓所有卡片、表格與輸入選單強制連動 1-5 級縮放比例 */
+        .job-card, .time-table td, input, select {
+            font-size: calc(1rem * var(--user-scale, 1.0)) !important;
+        }
         
         /* 登入與註冊介面 */
         .login-container { max-width: 400px; margin: 30px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; position: relative; }
@@ -16,22 +28,22 @@
         .btn-login { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .toggle-reg-btn { position: absolute; right: 12px; top: 12px; background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
 
-        /* 尋找並將 .header 修改為： */
-    .header { 
-        position: fixed; 
-        top: 0; 
-        left: 0; 
-        right: 0; 
-        z-index: 999; 
-        background: #2c3e50; 
-        color: white; 
-        padding: 12px; 
-        display: flex; 
-        flex-direction: column; 
-        gap: 8px; 
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    }
-        /* 修正右側控制區排版，讓登出鍵與日期靠右併排且不重疊 */
+        /* 主版面 - 永久固定置頂 */
+        .header { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            z-index: 999; 
+            background: #2c3e50; 
+            color: white; 
+            padding: 12px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        /* 右側控制區排版 */
         .header-controls {
             display: flex;
             align-items: center;
@@ -47,37 +59,34 @@
             font-size: 0.85rem; 
             white-space: nowrap;
         }
-        
-    .header-meta { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        font-size: 1.05rem; 
-        margin-top: 5px; 
-        flex-wrap: wrap; /* 💡 防止在極窄的手機上爆版面，會自動溫和地換行 */
-        gap: 8px;
-    }
-
+        .header-meta { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            font-size: 1.05rem; 
+            margin-top: 5px; 
+            flex-wrap: wrap;
+            gap: 8px;
+        }
         .header-total { background: rgba(255,255,255,0.15); padding: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
         
-        /* 增加置頂框架後下方的推擠間距，避免內容被遮擋 */
+        /* 核心內襯修正：完美留出置頂空間，且登入前絕不穿透撐開網頁 */
         .main-layout { 
             display: flex; 
             flex-direction: column; 
             gap: 15px; 
-            padding-top: 135px; /* 💡 改用內襯上邊距，完美留出置頂空間且不破壞登入介面 */
+            padding-top: 135px; 
         }
         .input-side { display: flex; flex-direction: column; gap: 12px; }
         
         /* 工作卡片 */
-        .job-card { border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: calc(1rem * var(--user-scale, 1.0)) }
-        .job-title { padding: 10px; font-size: calc(1rem * var(--user-scale, 1.0)) ; font-weight: bold; text-align: center; color: white; }
-        .qty-row { background: #fff9db; padding: 8px; text-align: center; border-bottom: 1px solid #ccc; font-size: calc(1rem * var(--user-scale, 1.0)); font-weight: bold; }
-        .qty-row input[type="number"] { width: 80px; height: 28px; text-align: center; font-size: calc(1rem * var(--user-scale, 1.0)) ; border: 1px solid #ccc; border-radius: 4px; }
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: calc(1rem * var(--user-scale, 1.0)) }
-        .time-table { width: 100%; border-collapse: collapse; min-width: 260px; font-size: calc(1rem * var(--user-scale, 1.0)) }
-        .time-table td { border: 1px solid #eee; padding: 6px; text-align: center; font-size: calc(1rem * var(--user-scale, 1.0)) }
-        input[type="time"] { width: 90%; height: 36px; font-size: calc(1rem * var(--user-scale, 1.0)); border: 1px solid #ccc; border-radius: 4px; background: #fafafa; text-align: center; }
+        .job-card { border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .job-title { padding: 10px; font-size: 1.15rem; font-weight: bold; text-align: center; color: white; }
+        .qty-row { background: #fff9db; padding: 8px; text-align: center; border-bottom: 1px solid #ccc; font-size: 0.95rem; font-weight: bold; }
+        .qty-row input[type="number"] { width: 80px; height: 28px; text-align: center; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .time-table { width: 100%; border-collapse: collapse; min-width: 260px; }
+        .time-table td { border: 1px solid #eee; padding: 6px; text-align: center; }
         
         /* 歷史紀錄與 Admin 區 */
         .record-side { background: white; border: 1px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -87,7 +96,6 @@
         .footer { padding: 12px 10px; background: #f8f9fa; border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px; }
         .btn-act { padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
         .bg-dark { background: var(--dark-blue); } .bg-light { background: var(--light-blue); }
-        
     </style>
 </head>
 <body>
@@ -113,9 +121,8 @@
     <button class="btn-login" style="background:#95a5a6; margin-top:5px;" onclick="showLoginUI()">返回登入</button>
 </div>
 
-<!-- 2. 主要工作區 (預設隱藏) -->
+<!-- 2. 主要工作區 (預設隱藏 - 將所有主畫面元素完美收納在內) -->
 <div id="mainArea" style="display: none;">
-    
     <div class="header">
         <div class="header-meta">
             <!-- 左側：名字 + 日期選擇器 + 當天時間總覽 -->
@@ -136,15 +143,6 @@
                 </select>
                 <button class="btn-logout" onclick="handleLogout()">登出</button>
             </div>
-        </div>
-
-        <!-- 最核心的當日總計時數列 -->
-        <div class="header-total">
-            <span>⏱️ 當日總計：</span>
-            <span id="displayTotal" style="padding:2px 12px; border-radius:4px; background:#fff; color:#000;">0.00</span> hrs
-        </div>
-    </div>
-
         </div>
         <div class="header-total">
             <span>⏱️ 當日總計：</span>
@@ -167,13 +165,10 @@
 </div>
 
 <script>
-    // 🌐 【最重要修正】所有雲端設定與名單移到最頂端第一行，確保執行順序 100% 正確
-    const SUPABASE_URL = "https://rdyakbvnlvlkceptcazl.supabase.co";
-
-    // ⚠️ 請記得在下方引號內填入您複製的 Publishable key
+    // 🌐 雲端設定與資料庫金鑰
+    const SUPABASE_URL = "https://supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeWFrYnZubHZsa2NlcHRjYXpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNjc3NzcsImV4cCI6MjA5Nzk0Mzc3N30.URFtuiLb3k1xBCnq6nwjAVieGhnDjoxV-mpz4hKKaDA"; 
     
-    // 呼叫官方標準的 window.supabase.createClient 建立連線
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let loginSessionUser = null; 
@@ -189,13 +184,20 @@
         {id:10, name:"外出", t:2, q:0, b:"bg-light"}
     ];
 
+    // 👑 雙管理員對照表
+    const ADMIN_ACCOUNTS = {
+        "lau": "okok7890",
+        "cherus": "okok7890"
+    };
+
     window.onload = () => {
-        // 💡 新增這兩行：網頁載入時自動讀取上一次儲存的字體級別（預設是 3）
-           const savedFontLevel = localStorage.getItem('team_font_level') || "3";
-           changeTextSize(savedFontLevel);
-        
+        // 自動載入字體記憶級別
+        const savedFontLevel = localStorage.getItem('team_font_level') || "3";
+        changeTextSize(savedFontLevel);
+
         const saved = localStorage.getItem('team_user_session');
         if(saved) {
+
             loginSessionUser = JSON.parse(saved);
             initApp();
         }
